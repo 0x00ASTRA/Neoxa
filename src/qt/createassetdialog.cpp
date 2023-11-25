@@ -390,36 +390,37 @@ void CreateAssetDialog::enableCreateButton()
         ui->createAssetButton->setDisabled(false);
 }
 
-bool CreateAssetDialog::checkIPFSHash(QString hash)
-{
+bool CreateAssetDialog::checkIPFSHash(QString hash) {
     ui->openIpfsButton->setDisabled(true);
 
     if (!hash.isEmpty()) {
-        std::string error;
-        if (!CheckEncoded(DecodeAssetData(hash.toStdString()), error)) {
+        // Check for CIDv0
+        if (hash.size() == 46 && hash.startsWith("Qm")) {
+            // CIDv0 is valid
+        }
+        // Check for CIDv1
+        else if (std::regex_match(hash.toStdString(), std::regex("^b[0-9a-vA-V]+[1-9A-HJ-NP-Za-km-z]+"))) {
+            // CIDv1 is valid
+        }
+        // Check for invalid hash
+        else {
             ui->ipfsText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("IPFS/Txid Hash must start with 'Qm' and be 46 characters or Txid Hash must have 64 hex characters"));
+            showMessage(tr("Invalid IPFS/Txid Hash. Please use a valid IPFS/Txid hash."));
             disableCreateButton();
             return false;
         }
-        else if (hash.size() != 46) {
-            ui->ipfsText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("IPFS/Txid Hash must have size of 46 characters, or 64 hex characters"));
-            disableCreateButton();
-            return false;
-        }
-        else if (DecodeAssetData(hash.toStdString()).empty()) {
-            showMessage(tr("IPFS/Txid hash is not valid. Please use a valid IPFS/Txid hash"));
-            disableCreateButton();
-            return false;
-        }
+    } else {
+        // Handle the case where the hash is empty
+        ui->ipfsText->setStyleSheet("border: 2px solid red");
+        showMessage(tr("IPFS/Txid Hash cannot be empty."));
+        disableCreateButton();
+        return false;
     }
 
-    // No problems where found with the hash, reset the border, and hide the messages.
+    // No problems were found with the hash, reset the border, and hide the messages.
     hideMessage();
     ui->ipfsText->setStyleSheet("");
     ui->openIpfsButton->setDisabled(false);
-    
 
     return true;
 }
